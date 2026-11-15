@@ -1,0 +1,2 @@
+const SUPABASE_URL = "https://lvgpfbjajxytbfyeslcx.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_SB_PUBLISHABLE_KEY";
