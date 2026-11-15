@@ -147,3 +147,5 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+const SUPABASE_ANON_KEY = "PASTE_YOUR_FIRST_KEY_HERE";
+const SUPABASE_URL = "https://lvgpfbjajxytbfyeslcx.supabase.co";
