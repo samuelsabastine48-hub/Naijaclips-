@@ -1,4 +1,4 @@
-{
+{wrangler.jsonc
   "appId": "com.naijaclips.app",
   "appName": "NaijaClips",
   "webDir": ".",
