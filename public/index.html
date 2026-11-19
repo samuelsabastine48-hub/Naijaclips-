@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NaijaClips</title>
+  <title>NaijaClips 🇳🇬</title>
   <style>
     body {
       margin: 0;
@@ -24,7 +23,16 @@
       border-radius: 12px;
       margin-bottom: 20px;
     }
-    video { width: 100%; margin-top: 15px; }
+    video {
+      width: 100%;
+      margin-top: 15px;
+      border-radius: 8px;
+    }
+    .clip {
+      padding: 12px 0;
+      border-bottom: 1px solid #444;
+    }
+    .status { color: #bdbdbd; }
   </style>
 </head>
 <body>
@@ -32,6 +40,7 @@
     <h1>NaijaClips 🇳🇬</h1>
     <p>Discover. Create. Share.</p>
   </header>
+
   <main>
     <div class="panel">
       <h2>Welcome to NaijaClips</h2>
@@ -41,11 +50,14 @@
       <video id="preview" controls playsinline hidden></video>
       <p>Select a video from your phone to preview it.</p>
     </div>
+
     <div class="panel">
-      <h2>🎬 Video Feed</h2>
-      <p>Your NaijaClips video feed will appear here.</p>
+      <h2>🎬 NaijaClips Video Feed</h2>
+      <p id="feedStatus" class="status">Connecting to video feed...</p>
+      <div id="videoFeed"></div>
     </div>
   </main>
+
   <script>
     const picker = document.getElementById("videoFile");
     const preview = document.getElementById("preview");
@@ -53,11 +65,64 @@
     picker.addEventListener("change", () => {
       const file = picker.files[0];
       if (!file) return;
+
       preview.src = URL.createObjectURL(file);
       preview.hidden = false;
     });
- 
-<script type="module" src="./supabase-client.js"></script>
+  </script>
+
+  <script type="module">
+    import { supabase } from "./supabase-client.js";
+
+    const feed = document.getElementById("videoFeed");
+    const status = document.getElementById("feedStatus");
+
+    async function loadVideos() {
+      status.textContent = "Loading videos...";
+
+      const { data, error } = await supabase
+        .from("videos")
+        .select("id, title, video_url, created_at")
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (error) {
+        status.textContent =
+          "Could not load videos. Please check the database settings.";
+        console.error("Video feed error:", error);
+        return;
+      }
+
+      feed.replaceChildren();
+
+      if (!data || data.length === 0) {
+        status.textContent =
+          "No published videos yet. Your video feed is connected.";
+        return;
+      }
+
+      status.textContent = "Latest videos";
+
+      data.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "clip";
+
+        const title = document.createElement("h3");
+        title.textContent = item.title || "Untitled video";
+
+        const player = document.createElement("video");
+        player.src = item.video_url;
+        player.controls = true;
+        player.playsInline = true;
+        player.preload = "metadata";
+
+        card.append(title, player);
+        feed.append(card);
+      });
+    }
+
+    loadVideos();
+  </script>
 </body>
 </html>
-
