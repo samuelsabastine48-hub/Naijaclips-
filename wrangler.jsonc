@@ -6,7 +6,14 @@
     "androidScheme": "https"
   }
 }
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "naijaclips-live",
+  "compatibility_date": "2026-11-19",
+  "workers_dev": true
+}
+
 
 const config = window.NAIJACLIPS_SUPABASE || {};
 const $ = (id) => document.getElementById(id);
