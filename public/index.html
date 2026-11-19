@@ -1,0 +1,61 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NaijaClips</title>
+  <style>
+    body {
+      margin: 0;
+      background: #101010;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    header {
+      background: #202020;
+      padding: 20px;
+    }
+    h1 { color: #ff453a; }
+    main { padding: 20px; }
+    .panel {
+      background: #252525;
+      padding: 18px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    video { width: 100%; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>NaijaClips 🇳🇬</h1>
+    <p>Discover. Create. Share.</p>
+  </header>
+  <main>
+    <div class="panel">
+      <h2>Welcome to NaijaClips</h2>
+      <p>Discover videos from across Nigeria.</p>
+      <h3>Preview your video</h3>
+      <input id="videoFile" type="file" accept="video/*">
+      <video id="preview" controls playsinline hidden></video>
+      <p>Select a video from your phone to preview it.</p>
+    </div>
+    <div class="panel">
+      <h2>🎬 Video Feed</h2>
+      <p>Your NaijaClips video feed will appear here.</p>
+    </div>
+  </main>
+  <script>
+    const picker = document.getElementById("videoFile");
+    const preview = document.getElementById("preview");
+
+    picker.addEventListener("change", () => {
+      const file = picker.files[0];
+      if (!file) return;
+      preview.src = URL.createObjectURL(file);
+      preview.hidden = false;
+    });
+  </script>
+</body>
+</html>
