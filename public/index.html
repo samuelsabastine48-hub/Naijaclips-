@@ -1,3 +1,452 @@
+/* NaijaClips cloud configuration.
+   Supabase project URL and public publishable key.
+   This key is intended for browser use when Row Level Security policies are configured.
+   NEVER put a service_role/secret key in browser code.
+*/
+window.NAIJACLIPS_SUPABASE = {
+  url: 'https://lvgpfbjajxytbfyeslcx.supabase.co',
+  anonKey: 'sb_publishable_IodssB9DUB9stpFMi9rAjA_GSss5Dtn'
+};
+NaijaClips Terms of Use
+Template — obtain legal review and replace bracketed details before launch.
+Effective date: [DATE]. Operator: [LEGAL BUSINESS NAME, CONTACT DETAILS].
+Eligibility and accounts
+Set the minimum age, account rules, password security requirements and account termination process: [ELIGIBILITY AND ACCOUNT RULES].
+User content
+You retain rights you hold in your uploads and grant only the limited hosting/display licence needed to operate the service. Do not upload content you do not own or have permission to share. Specify copyright complaint/takedown process: [COPYRIGHT PROCESS].
+Safety and enforcement
+Prohibit illegal content, harassment, exploitation, impersonation, spam, fraud and attempts to manipulate advertising. Describe reporting, blocking, moderation and appeals: [COMMUNITY RULES].
+Ads and creator earnings
+Ads may not be available to every user or region. Earnings are based only on verified provider data and may be adjusted for invalid traffic, reversals, fees or legal requirements. Eligibility, thresholds, taxes, review holds and payout timing must be published in a separate creator policy: [CREATOR MONETIZATION POLICY]. No income is guaranteed.
+Availability and liability
+Describe service availability, user responsibilities, dispute resolution and legally permitted liability limits with local legal advice: [LEGAL TERMS].
+Contact
+[SUPPORT EMAIL]
+const CACHE='naijaclips-shell-v2';
+const CORE=['./','./index.html','./cloud.js','./supabase-config.js','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;const url=new URL(event.request.url);if(url.origin!==self.location.origin)return;event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request).then(response=>{if(response.ok&&event.request.destination!=='video'){const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy))}return response}).catch(()=>caches.match('./index.html'))))});
+# NaijaClips — Ads, creator payouts and store release readiness
+▶
+NaijaClips
+＋ Post a clip
+YOUR VIDEO COMMUNITY
+Watch it. Make it. Share the vibe.
+Discover short videos, save your favourites, download clips and share your own moments. Made for creators everywhere.
+0
+clips on this device
+Two modes: the local feed stores clips on this device. The cloud feed below can be shared with other people after you connect your own Supabase backend using the included setup guide.
+🌍 Public cloud feed (0 loaded)
+Clips posted here can be viewed by other visitors. Create an account to publish. Only upload videos you have the right to share.
+Checking cloud setup…
+Email address
+# NaijaClips cloud backend setup (Supabase)
+
+This starter adds an optional shared public feed and email/password accounts. It requires you to create and configure your own Supabase project; no account, project key, storage, or paid plan is included.
+
+## 1. Create the backend
+1. Create a project at https://supabase.com/ and keep its database password private.
+2. In the Supabase SQL Editor, run `backend/supabase-schema.sql` from this ZIP.
+3. Open Project Settings → API and copy the Project URL and the public anon/publishable key.
+4. Edit `supabase-config.js` and replace both placeholders. Only use the public anon/publishable key in the website. Never expose a `service_role` or secret key.
+5. Deploy the whole folder to Netlify. `index.html`, `supabase-config.js`, `cloud.js`, `manifest.webmanifest`, `sw.js`, and `icons/` must be at the site root.
+
+## 2. Enable account email confirmation
+In Supabase Authentication settings, configure the site's Site URL and redirect URLs to your exact HTTPS Netlify domain. Decide whether to require email confirmation before public posting. Test sign-up, sign-in, sign-out, posting, playback and deletion using two different accounts/devices.
+
+## 3. What the cloud starter does
+- Creates email/password accounts through Supabase Auth.
+- Uploads video files to Supabase Storage (up to 250 MB per file in this starter).
+- Stores public clip metadata in Postgres and lists it in a shared feed.
+- Allows authenticated users to delete only their own clips, using row-level security.
+- Public clips can be watched by visitors; posting requires sign-in.
+
+The existing local-device prototype is retained. The cloud panel works only after configuration. Do not publish with the placeholder configuration and expect cloud features to work.
+
+## 4. Before a real public launch
+This is an MVP backend scaffold, not a production-scale video service. Add automated video transcoding and adaptive streaming/CDN, rate limits and quotas, upload scanning, reporting/blocking/moderation, copyright/takedown process, account recovery, privacy policy/terms, data export/deletion, backups, monitoring, abuse prevention and security review. Public storage can incur costs and exposes posted clips to anyone with their URLs. Establish budget alerts and quotas first.
+
+## 5. Monetization reality
+No revenue or creator payouts are enabled by this code. Ad networks, sponsors, analytics consent, eligibility rules, fraud checks, tax/compliance review and a payment/payout provider need separate integration. Never promise users guaranteed earnings based only on views.
+# NaijaClips payout + community safety setup
+
+This is implementation scaffolding, not a live payment account or a guarantee of approval. Start with Paystack test mode and never enable live transfers until the complete flow has been reviewed and tested.
+
+## Database migration order
+1. Run `supabase-schema.sql`.
+2. Run `monetization.sql`.
+3. Run `community-safety.sql`.
+4. Run `payout-balance-fix.sql` (important: includes paid payouts in balance deductions and serializes requests per creator).
+
+Review SQL and test row-level security using at least two ordinary user accounts before any public launch. The public clips policy now exposes only rows whose `moderation_status` is `published`. Admin moderation updates must happen only in a trusted server environment using the service-role key.
+
+## Edge Functions
+Deploy these Supabase Edge Functions:
+- `admin-approve-payout`: admin-only approve/reject; does not transfer money.
+- `admin-process-payout`: submits an approved payout to Paystack and leaves it `processing` until a signed webhook confirms outcome.
+- `paystack-webhook`: verifies the `x-paystack-signature` HMAC and updates the matching processing payout.
+
+Configure Edge Function secrets in Supabase, not in Netlify/browser JavaScript:
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (secret; never share or put in frontend code)
+- `PAYOUT_ADMIN_USER_IDS` (comma-separated Supabase Auth user UUIDs that are trusted payout admins)
+- `PAYSTACK_SECRET_KEY` (start with Paystack test secret key)
+- `APP_ORIGIN` (the exact HTTPS origin of the deployed NaijaClips site)
+
+Register the deployed `paystack-webhook` function URL in the Paystack dashboard as the transfer webhook endpoint. Confirm the event signature and transfer lifecycle using provider test mode. Never mark a payout paid from a browser response; only a verified provider event may do that. If a provider call times out or recipient creation fails, the request is deliberately left `processing` for human reconciliation to avoid accidental duplicate transfers. Do not retry until the provider dashboard confirms whether a transfer exists.
+
+### Payout operations
+1. Creator must have a saved payout profile and confirmed ledger earnings. Minimum request is ₦5,000.
+2. A trusted admin reviews KYC, suspicious traffic, bank details, balance, applicable fees/taxes, and request history.
+3. Admin calls `admin-approve-payout` with `{ "payoutRequestId": "UUID", "decision": "approve" }` or `reject`.
+4. For an approved request only, an authenticated allowlisted admin may call `admin-process-payout` with `{ "payoutRequestId": "UUID" }`.
+5. Wait for verified webhook; reconcile Paystack and database status. Keep audit evidence.
+
+The code is a starter and needs a professional security review, test-mode end-to-end tests, idempotency/retry testing, operational alerts and legal/compliance review before live money is used. Do not publish a promise of guaranteed creator income.
+
+## Reports and moderation
+Authenticated users can submit reports via `content_reports`; they can read only their own submitted reports. Users can manage their own block list. There is no client policy allowing reports to be edited or dismissed. Build a staff-only moderation UI or use an authenticated admin Edge Function before public launch. Set clips to `hidden` or `removed` for moderation actions; only `published` clips are publicly readable.
+
+## Must still be supplied by the owner
+- Real Supabase project URL/public key and configured storage/auth redirects.
+- Paystack business onboarding and API credentials, verified bank recipient handling, and admin UUIDs.
+- Real support email, privacy/terms review, creator eligibility and payout rules.
+- App Store Connect and Google Play developer accounts, app screenshots, signing certificates and platform-specific builds.
+
+Password (8+ characters)
+
+Sign in
+Create account
+
+Preparing cloud feed…
+Local device feed: the original offline prototype remains available below. Local clips are not public and will not transfer to another device.
+For you
+Liked
+Saved
+For you
+Your clips, ready to watch and share.
+Newest first ↕
+🎬
+Your feed starts here
+Post a video from your phone to get started. Your clip will appear here and you can play, download or share it.
+＋ Upload first clip
+＋ Post a video
+Choose a video from your phone, add a caption, then publish it to this device's feed.
+Video file *
+
+MP4 works best. Large videos use storage on your device; keep a backup of the original.
+Caption *
+Up to 180 characters.
+Publish clip
+
+💸 Creator earnings & payouts
+Creators can review verified ledger entries and submit payout requests once the cloud backend is configured. Live ads and automatic transfers are not enabled until provider accounts and server-side controls are approved.
+Open creator dashboard →
+Never pay a fee to unlock demo earnings. A pending request is not a completed bank transfer.
+About NaijaClips
+NaijaClips is an original short-video app concept. This starter works as a mobile-friendly installable web app, with local video posting, playback, downloads, likes, saves and sharing.
+To become a real worldwide social network, the next build needs secure user accounts, cloud video storage and streaming, a shared feed/database, reporting and moderation tools, privacy controls, and a compliant creator monetization/payment system. Views alone do not automatically generate money.
+NaijaClips • Original prototype • Be respectful, share responsibly.
+Videos are stored locally in this browser. Clearing site data may remove them.
+⌂ Home
+＋ Post
+▣ Saved
+← Back to NaijaClips
+DEPLOYMENT TOOL · v7
+NaijaClips setup check
+Run this after uploading the project to Netlify. It checks browser configuration and basic Supabase connectivity; it does not prove production security, payment readiness, or store approval.
+Run checks
+Cloud setup guide
+Results
+Press “Run checks” to start.
+Important safety notes
+	•	Only the Supabase public anon/publishable key belongs in supabase-config.js.
+	•	Never put a service-role key, database password, or Paystack secret in this website.
+	•	A successful connection does not mean ads or creator payouts are active.
+	•	Test sign-up, email confirmation, upload, playback, download, owner deletion, and a second account on separate devices before launch.
+NaijaClips launch checklist
+
+BEFORE DEPLOYING
+[ ] Extract the complete ZIP.
+[ ] If enabling cloud mode, create a Supabase project.
+[ ] Run backend/supabase-schema.sql in the Supabase SQL Editor.
+[ ] Replace placeholders in supabase-config.js with Project URL + public anon/publishable key only.
+[ ] Set Supabase Auth Site URL and redirect URLs to the exact Netlify HTTPS URL.
+[ ] Set an upload/storage budget alert and test with small videos first.
+
+AFTER DEPLOYING
+[ ] Open the Netlify URL on a phone.
+[ ] Test local-device upload and playback.
+[ ] Test cloud account signup/sign-in.
+[ ] Test cloud upload and playback from a second browser/device.
+[ ] Test deleting your own clip and confirm another account cannot delete it.
+[ ] Test sign-out and account confirmation/recovery.
+[ ] Add moderation/reporting, privacy policy, terms, monitoring and backups before public promotion.
+
+NOT YET INCLUDED
+- Native App Store / Google Play submission
+- Video transcoding/adaptive streaming/CDN
+- Ad network or sponsor integrations
+- Creator earnings, payout accounts, tax and fraud controls
+- Production security review and moderation operations
+▶ NaijaClips
+Creator earnings
+Track confirmed earnings and request payouts. Earnings are not generated by demo views. Payouts remain pending until the operator configures and verifies a payment provider.
+Account
+Checking cloud configuration…
+Email
+
+Password
+
+Sign in Create account
+Sign out
+
+Available balance
+₦0.00
+Minimum payout request: ₦5,000.00. A request is not a promise of payment; bank/provider verification and manual approval are required.
+Sign in to view your ledger.
+Bank payout details
+Use your own bank account. These details are stored in your authenticated account's private row. Do not enter another person's details without permission.
+Account name
+
+Bank name
+
+Bank code
+
+10-digit account number
+
+Save bank details
+Request a payout
+Amount in naira (₦)
+
+Request payout
+This creates a tracked request. No money is transferred by this prototype.
+No requests loaded.
+Advertising setup
+Ad placements reserved — no live ads are served yet.
+Live ads require an approved publisher account, correct web/native SDK integration, app IDs, consent/privacy disclosures, invalid-traffic controls, and provider-side reporting. Revenue must be imported from verified provider reports on the server, not inferred from clicks or views in this page.
+Back to videos
+{
+  "appId": "com.naijaclips.app",
+  "appName": "NaijaClips",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  }
+}
+
+## What this package does now
+- Adds `creator-dashboard.html` for account sign-in, payout profile entry, earnings ledger viewing and payout requests.
+- Adds `backend/monetization.sql`: creator earnings ledger, private bank profile, payout request table, row-level security and an atomic payout-request RPC. Minimum request is ₦5,000.
+- Keeps earnings writes server-side only. The browser cannot mint its own earnings.
+- Adds a Capacitor starter configuration for native iOS/Android project generation.
+- Adds privacy and terms templates that must be reviewed and completed before public launch.
+
+## What is NOT live yet
+No advertising network has approved this publisher/app; no live ads are shown; no real earnings are imported; no payout transfer is made; no App Store or Google Play submission has been uploaded. Do not advertise the app as paying creators until real provider integration, review, and end-to-end payout tests pass.
+
+## Backend setup
+1. Create a Supabase project and follow `backend/CLOUD_SETUP.md`.
+2. Run `backend/monetization.sql` and then `backend/community-safety.sql` after `backend/supabase-schema.sql`. See `backend/PAYOUT_AND_MODERATION_SETUP.md` for the Edge Function starter and secret setup.
+3. Deploy the site over HTTPS and configure `supabase-config.js` with only the public anon/publishable key. Never expose service-role keys or payment-provider secret keys in browser code.
+4. Open `/creator-dashboard.html`, create/sign in to an account, save a test payout profile, and verify that payout requests are blocked without a confirmed ledger balance.
+5. Add a trusted server-side admin workflow for reviewing payout requests. Do not grant creators permission to insert/update earnings or mark payouts paid.
+
+## Advertising integration (requires account approval)
+- Website ads: apply to an appropriate web publisher product (for example, Google AdSense) and wait for approval. Only add the exact publisher script/ad units issued to the approved site; configure consent where required; never encourage clicks or place ads to mislead users.
+- Native app ads: when packaging the native app, use a supported mobile ads SDK such as Google Mobile Ads (AdMob) in the native iOS/Android layer. Register each app, use test ad unit IDs during development, then replace with production IDs only after approval. Do not simply paste a web AdSense script and assume it serves native app ads.
+- Video feed: decide ad format and frequency carefully. Follow provider rules for rewarded/interstitial ads and disclose incentives. Protect children and sensitive content, support reporting/takedowns, and monitor invalid traffic.
+- Revenue accounting: import provider statements/earnings from a trusted server-side integration or reconciled reports. Creator share, platform share, thresholds, reversals, taxes and dispute rules must be documented before any balance is displayed as payable.
+
+## Creator payouts in Nigeria
+- Choose a licensed payment provider and complete business/KYB onboarding. Paystack Transfers or another approved provider may be suitable depending on the account's eligibility and provider rules.
+- Obtain verified bank-code/account-name resolution and test credentials. Store secret keys only in server-side secrets (Supabase Edge Function secrets or equivalent).
+- Build admin-only payout approval and a server-side transfer worker with idempotency keys, provider webhook signature verification, retry handling, daily limits, audit logs and reconciliation. Never transfer automatically based only on a browser request.
+- Confirm creator identity/KYC requirements, fraud/invalid-traffic holds, minimum payout, fees, tax handling, refund/reversal rules, privacy notices and support process with legal/payment advisers.
+- Test the complete lifecycle with provider test mode before enabling live payouts. A request shown as `pending` is not a completed transfer.
+
+## iOS App Store and Google Play
+This folder is a PWA. Store release requires native projects, developer accounts, signed builds, policy-compliant privacy disclosures and review. To generate native project shells:
+1. Install Node.js LTS and a current npm.
+2. Run `npm install` in this folder.
+3. Run `npm run cap:add:ios` on a Mac with current Xcode, and `npm run cap:add:android` with Android Studio/SDK installed.
+4. Run `npm run cap:sync`, then open iOS in Xcode and Android in Android Studio. Configure bundle/package IDs, signing, app icons/splash screens, HTTPS domain behavior, deep links, permissions and ads SDKs.
+5. Test on real devices: account creation/login, upload failure recovery, video playback on mobile networks, download/share, account deletion, privacy choices, ad consent, content reporting, blocking, moderation and payout states.
+6. Submit via App Store Connect and Google Play Console using your own developer accounts. Approval and release are controlled by Apple/Google; this package cannot bypass their review.
+
+## Launch gate checklist
+- [ ] Replace all template privacy/contact/legal text with real business details and publish public privacy + terms URLs.
+- [ ] Complete account deletion and data export workflows required by platform rules.
+- [ ] Add report content/user, moderation queue, copyright takedown, age/content safeguards and community guidelines.
+- [ ] Use secure streaming/transcoding/CDN and upload quotas; current starter uploads directly to Supabase storage and is not a large-scale video pipeline.
+- [ ] Configure backups, logs, rate limits, monitoring, security review and incident response.
+- [ ] Obtain ad network approval and verify live test ads on approved devices.
+- [ ] Complete payment-provider onboarding, payout approvals, reconciliation and test-mode transfer tests.
+- [ ] Run privacy/security review and store metadata/screenshots before submission.
+# NaijaClips v6 — Start here
+
+This is the deployment-ready *web project bundle* for continuing setup. It is not a completed production launch, and it has not been submitted to either app store.
+
+## A. Publish the website on Netlify
+1. Extract this ZIP.
+2. In Netlify, choose **Add new site / Deploy manually** (or drag and drop the extracted folder's *contents*).
+3. Confirm `index.html` is at the published site's root. It must be beside `cloud.js`, `supabase-config.js`, `manifest.webmanifest`, `sw.js`, and the `icons/` folder.
+4. Open the HTTPS site and test the local-device video feed.
+
+## B. Connect Supabase cloud feed
+1. Create a Supabase project at https://supabase.com/.
+2. In **SQL Editor**, run `backend/supabase-schema.sql` first.
+3. Run `backend/monetization.sql` next, then `backend/payout-balance-fix.sql`, then `backend/community-safety.sql`.
+4. In Supabase **Project Settings → API**, copy the **Project URL** and the **public anon/publishable key**.
+5. Edit `supabase-config.js` and replace the two placeholders. The key placed in this browser file must be the public anon/publishable key only. Never place a `service_role`, secret, database password, or Paystack secret key in this file.
+6. In Supabase Auth settings, add the exact Netlify HTTPS URL as the Site URL and allowed redirect URL.
+7. In Storage, confirm the `clips` public bucket and policies were created by the schema.
+8. Test account signup, email confirmation, login, upload, playback and owner deletion on two separate devices/accounts.
+
+**Do not send passwords or secret keys in chat.** If you need help configuring the public settings, share only the project URL and public anon/publishable key. The public key is designed for browser use when Row Level Security policies are correctly configured.
+
+## C. Android and iPhone release preparation
+Read `MOBILE_RELEASE_GUIDE.md`. This bundle contains the web app and Capacitor configuration, not prebuilt signed Android/iOS binaries. Native builds, signing, device testing, store account setup, and store review remain required.
+
+## D. Monetization safety
+Advertising is not earning revenue until an approved provider is configured and verified ad activity is reported. Creator payouts are not live until the server-side functions, payment-provider test flow, webhook verification, admin access controls and reconciliation are tested end to end. Never use real money until test-mode verification and a security review pass.
+# NaijaClips recovered project — deployment next steps
+
+This bundle preserves the existing NaijaClips v7 source package. It is not a new app.
+
+## Known project references
+- Existing Netlify site previously shared: https://fancy-centaur-4f0d46.netlify.app
+- Existing Supabase project URL: https://lvgpfbjajxytbfyeslcx.supabase.co
+- Supabase public anon/publishable key: still needs to be copied from the existing Supabase project.
+
+## Before redeploying
+1. In Supabase Dashboard → Project Settings → API (or API Keys), copy the public anon/publishable key.
+2. Edit `supabase-config.js` and replace `PASTE_YOUR_SUPABASE_PUBLIC_ANON_OR_PUBLISHABLE_KEY_HERE` with that public key. Never use a service-role or secret key in this browser file.
+3. Confirm the SQL in `backend/supabase-schema.sql` and required storage bucket/policies have been applied to the existing project. Do not blindly rerun unrelated migrations without checking current database state.
+4. Deploy the extracted site-root contents to the existing Netlify site only after preserving/downloading the current deployed version. Keep `index.html`, `cloud.js`, `supabase-config.js`, `diagnostics.html`, `manifest.webmanifest`, `sw.js`, `icons/`, and `backend/` at the root.
+5. Visit `https://fancy-centaur-4f0d46.netlify.app/diagnostics.html` and run the checks.
+6. Test sign-up/sign-in, upload a small MP4, view it from a second browser/device, download, report, and owner-only deletion.
+# NaijaClips — Mobile Video App + Cloud Backend Starter
+
+NaijaClips is an original, mobile-first Progressive Web App (PWA) prototype. It does not copy another platform's branding or assets.
+
+## What's included
+- Responsive mobile-friendly interface and installable PWA shell
+- Local-device feed: select/post videos, playback, likes, saves, downloads, sharing and deletion
+- Optional cloud mode: Supabase email/password accounts, shared public feed, cloud video uploads, playback, downloads, sharing and owner-only deletion
+- Supabase database schema, monetization ledger/payout-request tables, community reports and block-list policies
+- Corrected creator-balance RPC and serialized payout-request accounting migration
+- Cloud-feed report button for signed-in users
+- Admin-only payout approval/submission Edge Function starters and signed Paystack webhook starter
+- Setup guide, PWA manifest, service worker and icons
+
+## Publish the website
+1. Extract this ZIP into a folder.
+2. Deploy the folder to Netlify so `index.html`, `cloud.js`, `supabase-config.js`, `manifest.webmanifest`, `sw.js`, `icons/` and `backend/` are at the site root.
+3. Local-device mode works without a backend. To enable shared accounts/videos, follow `backend/CLOUD_SETUP.md` and configure `supabase-config.js` first.
+4. On iPhone, open the HTTPS website in Safari → Share → Add to Home Screen.
+
+## Important
+The cloud mode is an integration scaffold and will not connect until you create/configure your own Supabase project and run the SQL setup. No backend account, cloud storage, production CDN, app-store listing, ads or payouts are included. Never put a Supabase service-role/secret key in client code.
+
+Before public launch, add video transcoding/streaming, quotas/rate limits, content moderation/reporting, copyright takedowns, privacy/terms, account recovery, backups, monitoring, security review and an eligible monetization/payout system. Hosting a website does not automatically create revenue.
+
+## Monetization and store preparation (starter only)
+- Open `creator-dashboard.html` for the creator ledger/payout request UI.
+- Run `backend/monetization.sql` after `backend/supabase-schema.sql`, then `backend/payout-balance-fix.sql`. Apply `backend/community-safety.sql` for report/block features.
+- Review `STORE_AND_MONETIZATION_READINESS.md` and `backend/PAYOUT_AND_MODERATION_SETUP.md` before enabling anything live.
+- `privacy-policy-template.html` and `terms-template.html` are templates, not legal-ready documents.
+- Capacitor starter files (`package.json`, `capacitor.config.json`) help generate native project shells; Apple/Google submission still requires developer accounts, signing, native testing, provider integrations and review.
+NaijaClips Privacy Policy
+Template — complete and review before publishing. Replace every bracketed item with accurate details.
+Effective date: [DATE]
+Who operates NaijaClips
+[LEGAL BUSINESS NAME], [CONTACT EMAIL], [BUSINESS ADDRESS] operates NaijaClips.
+Information collected
+Depending on enabled features, we may process account email, profile details, videos and captions you upload, payout details you submit, support messages, device/app diagnostics, and advertising or analytics data from configured providers.
+How information is used
+We use information to operate accounts, host and display videos, prevent abuse, moderate content, respond to support requests, calculate verified creator earnings, process approved payouts, and meet legal obligations.
+Sharing and providers
+Data may be processed by hosting, database, storage, advertising, analytics, moderation and payment providers configured by the operator. List actual providers and relevant data transfers here: [PROVIDERS AND TRANSFERS].
+Retention and security
+Describe retention periods, security measures, and limitations accurately: [RETENTION AND SECURITY]. No online service can promise absolute security.
+Your choices and rights
+Explain how users can access, correct, export or delete their information, withdraw consent where applicable, and contact the relevant regulator: [USER RIGHTS PROCESS].
+Children
+Describe the app's age rating, safeguards and policy for minors: [CHILD SAFETY POLICY].
+Contact
+[PRIVACY CONTACT EMAIL AND ADDRESS]
+{
+  "name": "naijaclips-app",
+  "version": "0.3.0",
+  "private": true,
+  "description": "NaijaClips mobile-first video sharing PWA and native shell starter",
+  "scripts": {
+    "cap:add:ios": "cap add ios",
+    "cap:add:android": "cap add android",
+    "cap:sync": "cap sync",
+    "cap:open:ios": "cap open ios",
+    "cap:open:android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/ios": "^7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3"
+  }
+}
+# NaijaClips — Android and iOS release guide
+
+## Current state
+The repository has `package.json` and `capacitor.config.json` for Capacitor. Native Android and iOS project folders and signed release binaries are not included in this ZIP. A successful app-store release cannot be claimed until the projects are generated, tested, signed, uploaded and approved.
+
+## Requirements
+- Node.js/npm and Git.
+- Android: Android Studio and Android SDK; a Google Play Console developer account for release.
+- iOS: macOS with Xcode for native build/signing, an Apple Developer account, and App Store Connect access.
+- A live HTTPS website and working privacy policy, terms, support contact, content reporting, account deletion and moderation process before submission.
+
+## Generate native shells
+Run these commands from the extracted project directory on a computer with Node.js/npm installed:
+
+```sh
+npm install
+npx cap add android
+npx cap add ios
+npx cap sync
+npx cap open android
+npx cap open ios
+```
+
+Run `npx cap add ios` on macOS with the iOS toolchain available. If a native platform folder already exists, do not add it again; run `npx cap sync` instead.
+
+## Android
+1. Open the Android project in Android Studio.
+2. Set the final application ID and versioning before release; `com.naijaclips.app` is only the current starter ID.
+3. Test signup, uploads, video playback, report flow, download/share behavior, accessibility, network failure, and account deletion on physical Android devices.
+4. Create and securely back up a release signing key. Never commit signing credentials to source control.
+5. Build a signed Android App Bundle (`.aab`), upload it to an internal testing track, fix all issues, then complete Play Console declarations and request production release.
+
+## iPhone/iPad
+1. Open the generated iOS project in Xcode on a Mac.
+2. Set a unique bundle identifier, version/build number, signing team, icons and launch settings.
+3. Test on physical iPhones/iPads and verify privacy permissions, account deletion, reporting, video uploads, playback, and network interruptions.
+4. Archive and upload via Xcode to App Store Connect, use TestFlight, resolve review issues, then submit for App Store review.
+
+## Store policies and content
+Because users can post public videos, implement reliable report/block controls, prompt moderation and removal, a copyright/takedown path, clear community guidelines, privacy disclosures, support contact and account deletion. Explain what data is collected and how uploaded videos are used. Complete the current platform privacy/data-safety forms accurately. Do not publish template legal pages unchanged without review.
+
+## Advertising and creator payouts
+Do not add live ad IDs or transfer credentials until the relevant provider account is approved. Use test mode, validate server-side earnings and webhook signatures, enforce creator eligibility and payout limits, and reconcile all transfers. Never place provider secrets in the app or browser bundle. Store review is separate from payment-provider approval.
+
+## Current limitations
+- This archive is recovered from the latest saved NaijaClips project package; it does not prove that the GitHub remote and Netlify deployment are identical to this package.
+- The public Supabase key is intentionally not guessed or embedded.
+- Ads, real creator earnings/transfers, native Android/iOS signed builds, and app-store approval are not complete. Do not advertise payouts as active until provider setup and end-to-end verification are done.
 
 <!DOCTYPE html>
 <html lang="en">
