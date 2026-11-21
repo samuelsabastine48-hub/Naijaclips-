@@ -1,4 +1,5 @@
-
+export const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
+export const SUPABASE_ANON_KEY = "YOUR_PUBLIC_KEY";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import {
