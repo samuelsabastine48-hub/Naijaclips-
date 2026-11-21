@@ -1,3 +1,4 @@
+
 export const SUPABASE_URL = "https://lvgpfbjajxytbfyeslcx.supabase.co";
 
-export const SUPABASE_ANON_KEY = "PASTE_YOUR_ACTUAL_PUBLISHABLE_KEY_HERE";
+export const SUPABASE_ANON_KEY = "sb_publishable_IodssB9DUB9stpFMi9rAjA_GSss5Dtn";
