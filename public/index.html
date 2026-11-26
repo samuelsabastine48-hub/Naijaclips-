@@ -4,219 +4,367 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#008751">
-  <meta name="description" content="Discover, create and share videos from across Nigeria.">
-  <title>NaijaClips 🇳🇬</title>
-  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#101010">
+  <title>NaijaClips — Nigerian Video Community</title>
+  <meta name="description" content="Discover, share and enjoy videos from Nigeria and beyond.">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root { color-scheme: dark; --green:#008751; --bg:#101010; --panel:#1c1c1c; }
-    * { box-sizing:border-box; }
-    body { margin:0; background:var(--bg); color:white; font-family:Arial,sans-serif; }
-    header { position:sticky;top:0;z-index:2;background:#151515;padding:16px;
-      border-bottom:1px solid #303030; }
-    .brand { color:#25d98a;font-size:25px;font-weight:800; }
-    .tagline { color:#bbb;font-size:13px;margin-top:5px; }
-    main { max-width:760px;margin:auto;padding:16px; }
-    .panel { background:var(--panel);padding:16px;border-radius:14px;margin-bottom:18px; }
-    h2 { font-size:18px;margin-top:0; }
-    input,button { width:100%;padding:13px;border-radius:9px;margin-top:9px;
-      font-size:15px; }
-    input { background:#101010;color:white;border:1px solid #444; }
-    button { border:0;background:var(--green);color:white;font-weight:bold;cursor:pointer; }
-    button:disabled { opacity:.6; }
-    .secondary { background:#333; }
-    #status { font-size:14px;color:#ddd;line-height:1.5;overflow-wrap:anywhere; }
-    .video-card { background:var(--panel);padding:12px;border-radius:14px;margin:16px 0; }
-    video { display:block;width:100%;max-height:70vh;background:#000;border-radius:10px; }
-    .video-title { font-weight:bold;margin:12px 0 5px;overflow-wrap:anywhere; }
-    .date { color:#aaa;font-size:12px; }
-    .empty { text-align:center;padding:30px 10px;color:#bbb; }
-    footer { text-align:center;color:#888;font-size:12px;padding:24px; }
-    a { color:#52dba0; }
+    :root {
+      color-scheme: dark;
+      --bg: #101010;
+      --panel: #1c1c1c;
+      --text: #f7f7f7;
+      --muted: #aaa;
+      --green: #00c875;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    header {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid #333;
+      position: sticky;
+      top: 0;
+      background: #101010f5;
+      z-index: 2;
+    }
+    .logo { font-size: 22px; font-weight: 900; }
+    .logo span { color: var(--green); }
+    main { width: min(900px, 100%); margin: auto; padding: 18px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid #303030;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    h1 { font-size: 25px; margin: 8px 0; }
+    h2 { font-size: 19px; margin-top: 0; }
+    p { line-height: 1.5; }
+    .muted, small { color: var(--muted); }
+    input, button {
+      font: inherit;
+      border-radius: 9px;
+      padding: 12px;
+    }
+    input {
+      width: 100%;
+      background: #111;
+      color: white;
+      border: 1px solid #454545;
+      margin: 5px 0 10px;
+    }
+    button {
+      border: 0;
+      cursor: pointer;
+      font-weight: 750;
+      background: var(--green);
+      color: #06160e;
+      margin: 3px;
+    }
+    button.secondary {
+      background: #333;
+      color: white;
+    }
+    button:disabled { opacity: .5; cursor: wait; }
+    .actions { display: flex; flex-wrap: wrap; gap: 5px; }
+    .status { white-space: pre-wrap; font-size: 14px; margin-top: 10px; }
+    .video-card {
+      background: var(--panel);
+      border: 1px solid #303030;
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+    video {
+      display: block;
+      width: 100%;
+      max-height: 650px;
+      background: black;
+      border-radius: 10px;
+    }
+    .video-title { font-size: 17px; font-weight: 750; margin: 12px 0 5px; }
+    .hidden { display: none !important; }
+    footer { text-align: center; padding: 24px; color: var(--muted); }
   </style>
 </head>
 <body>
 <header>
-  <div class="brand">🇳🇬 NaijaClips</div>
-  <div class="tagline">Discover. Create. Share.</div>
+  <div class="logo">Naija<span>Clips</span> 🇳🇬</div>
+  <button id="refreshBtn" class="secondary">Refresh feed</button>
 </header>
 
 <main>
   <section class="panel">
-    <h2>🎬 Share a video</h2>
-    <input id="title" type="text" maxlength="150" placeholder="Give your video a title">
-    <input id="videoFile" type="file" accept="video/*">
+    <h1>Your videos. Your community.</h1>
+    <p class="muted">Discover and share videos from Nigeria and around the world.</p>
+    <div id="accountStatus" class="status">Checking account...</div>
+  </section>
+
+  <section class="panel" id="authPanel">
+    <h2>Sign in or create an account</h2>
+    <label for="email">Email address</label>
+    <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+    <label for="password">Password</label>
+    <input id="password" type="password" autocomplete="current-password" placeholder="At least 6 characters">
+    <div class="actions">
+      <button id="signInBtn">Sign in</button>
+      <button id="signUpBtn" class="secondary">Create account</button>
+      <button id="signOutBtn" class="secondary hidden">Sign out</button>
+    </div>
+    <div id="authMessage" class="status" role="status"></div>
+  </section>
+
+  <section class="panel" id="uploadPanel">
+    <h2>Share a video</h2>
+    <p class="muted">Sign in first. Choose a video file and add a title.</p>
+    <label for="videoTitle">Video title</label>
+    <input id="videoTitle" maxlength="150" placeholder="What is your video about?">
+    <label for="videoFile">Choose video file</label>
+    <input id="videoFile" type="file" accept="video/mp4,video/webm,video/quicktime,video/*">
     <button id="uploadBtn">Upload video</button>
-    <p style="font-size:12px;color:#aaa">Choose a video from your phone. Uploading requires the correct Supabase storage and database permissions.</p>
+    <div id="uploadMessage" class="status" role="status"></div>
   </section>
 
-  <section class="panel">
-    <h2>📺 Video community</h2>
-    <p id="status" role="status" aria-live="polite">Connecting to video feed...</p>
-    <button id="refreshBtn" class="secondary">Refresh videos</button>
-  </section>
-
-  <section id="feed" aria-label="Public video feed">
-    <div class="empty">Loading videos...</div>
+  <section>
+    <h2>Latest public videos</h2>
+    <div id="feedMessage" class="status" role="status">Loading videos...</div>
+    <div id="feed"></div>
   </section>
 </main>
 
-<footer>NaijaClips 🇳🇬 · Made for the Nigerian community</footer>
+<footer>NaijaClips © <span id="year"></span> · Made for the community 🇳🇬</footer>
 
-<script type="module">
-import { createClient } from
-  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+<script>
+(() => {
+  const SUPABASE_URL = "https://lvgpfbjajxytbfyeslcx.supabase.co";
+  // Use your Supabase sb_publishable_ key here, never a secret/service-role key.
+  const SUPABASE_PUBLISHABLE_KEY = "PASTE_YOUR_SB_PUBLISHABLE_KEY_HERE";
 
-const SUPABASE_URL = "https://lvgpfbjajxytbfyeslcx.supabase.co";
-const SUPABASE_KEY = "sb_publishable_IodssB9DUB9stpFMi9rAjA_GSss5Dtn";
-const BUCKET = "clips";
+  const $ = id => document.getElementById(id);
+  $("year").textContent = new Date().getFullYear();
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const statusBox = document.getElementById("status");
-const feed = document.getElementById("feed");
-const uploadBtn = document.getElementById("uploadBtn");
-
-function setStatus(message) {
-  statusBox.textContent = message;
-}
-
-function showError(action, error) {
-  console.error("NaijaClips " + action + ":", error);
-  setStatus(action + " failed: " + (error?.message || "Unknown error") +
-    ". Check Supabase table, bucket and access policies.");
-}
-
-async function loadVideos() {
-  setStatus("Connecting to video feed...");
-  feed.replaceChildren();
-
-  const { data, error } = await supabase
-    .from("videos")
-    .select("id, title, video_url, created_at")
-    .eq("is_public", true)
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  if (error) {
-    showError("Loading videos", error);
-    feed.textContent = "Videos could not be loaded. See the error above.";
+  if (!window.supabase ||
+      SUPABASE_PUBLISHABLE_KEY === "PASTE_YOUR_SB_PUBLISHABLE_KEY_HERE") {
+    $("accountStatus").textContent =
+      "Setup needed: enter your Supabase publishable key in index.html.";
+    $("feedMessage").textContent = "The site needs its Supabase key before it can load videos.";
+    $("uploadBtn").disabled = true;
+    $("signInBtn").disabled = true;
+    $("signUpBtn").disabled = true;
     return;
   }
 
-  if (!data || data.length === 0) {
-    setStatus("Connected. No public videos were found.");
-    feed.innerHTML = '<div class="empty">No public videos yet. Be the first to share one!</div>';
-    return;
+  const db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+  let currentUser = null;
+  let uploading = false;
+
+  function show(id, message) {
+    $(id).textContent = message;
   }
 
-  setStatus("Connected · " + data.length + " video(s) loaded.");
-
-  for (const item of data) {
-    if (!item.video_url) continue;
-
-    const card = document.createElement("article");
-    card.className = "video-card";
-
-    const player = document.createElement("video");
-    player.controls = true;
-    player.playsInline = true;
-    player.preload = "metadata";
-    player.src = item.video_url;
-
-    const title = document.createElement("div");
-    title.className = "video-title";
-    title.textContent = item.title || "NaijaClips video";
-
-    const date = document.createElement("div");
-    date.className = "date";
-    date.textContent = item.created_at
-      ? new Date(item.created_at).toLocaleString()
-      : "";
-
-    card.append(player, title, date);
-    feed.append(card);
+  function updateAccount(user) {
+    currentUser = user;
+    $("accountStatus").textContent = user
+      ? "Signed in as " + user.email
+      : "You are browsing as a guest. Sign in to upload videos.";
+    $("signOutBtn").classList.toggle("hidden", !user);
+    $("signInBtn").classList.toggle("hidden", !!user);
+    $("signUpBtn").classList.toggle("hidden", !!user);
   }
 
-  if (!feed.children.length) {
-    feed.innerHTML = '<div class="empty">No playable video links were found.</div>';
-  }
-}
+  async function authAction(action) {
+    const email = $("email").value.trim();
+    const password = $("password").value;
 
-async function uploadVideo() {
-  const file = document.getElementById("videoFile").files[0];
-  const title = document.getElementById("title").value.trim();
-
-  if (!file) {
-    setStatus("Please select a video from your phone first.");
-    return;
-  }
-
-  if (!file.type.startsWith("video/")) {
-    setStatus("Please choose a valid video file.");
-    return;
-  }
-
-  if (file.size > 100 * 1024 * 1024) {
-    setStatus("This upload is over 100 MB. Choose a smaller video.");
-    return;
-  }
-
-  uploadBtn.disabled = true;
-  uploadBtn.textContent = "Uploading...";
-  setStatus("Uploading your video. Please keep this page open...");
-
-  try {
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = Date.now() + "-" +
-      Math.random().toString(36).slice(2) + "-" + safeName;
-
-    const { error: storageError } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file, { contentType: file.type, upsert: false });
-
-    if (storageError) throw storageError;
-
-    const { data: publicData } = supabase.storage
-      .from(BUCKET)
-      .getPublicUrl(path);
-
-    const { error: insertError } = await supabase
-      .from("videos")
-      .insert({
-        title: title || file.name,
-        video_url: publicData.publicUrl,
-        is_public: true
-      });
-
-    if (insertError) {
-      setStatus("The file uploaded, but saving its video record failed: " +
-        insertError.message +
-        ". The uploaded file remains in storage; don't upload it again yet.");
+    if (!email || !password) {
+      show("authMessage", "Enter your email and password.");
       return;
     }
 
-    document.getElementById("title").value = "";
-    document.getElementById("videoFile").value = "";
-    setStatus("Video uploaded successfully!");
-    await loadVideos();
-  } catch (error) {
-    showError("Uploading video", error);
-  } finally {
-    uploadBtn.disabled = false;
-    uploadBtn.textContent = "Upload video";
+    show("authMessage", "Please wait...");
+    let result;
+
+    if (action === "signup") {
+      result = await db.auth.signUp({ email, password });
+    } else {
+      result = await db.auth.signInWithPassword({ email, password });
+    }
+
+    if (result.error) {
+      show("authMessage", result.error.message);
+      return;
+    }
+
+    if (action === "signup" && !result.data.session) {
+      show("authMessage", "Account created. Check your email to confirm it, then sign in.");
+    } else {
+      show("authMessage", "Account ready.");
+    }
+
+    updateAccount(result.data.user || result.data.session?.user || null);
   }
-}
 
-uploadBtn.addEventListener("click", uploadVideo);
-document.getElementById("refreshBtn").addEventListener("click", loadVideos);
+  $("signInBtn").addEventListener("click", () => authAction("signin"));
+  $("signUpBtn").addEventListener("click", () => authAction("signup"));
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js").catch(error => {
-    console.warn("Service worker registration failed:", error);
+  $("signOutBtn").addEventListener("click", async () => {
+    const { error } = await db.auth.signOut();
+    show("authMessage", error ? error.message : "Signed out.");
+    if (!error) updateAccount(null);
   });
-}
 
-loadVideos();
+  db.auth.onAuthStateChange((_event, session) => {
+    updateAccount(session?.user || null);
+  });
+
+  async function loadFeed() {
+    show("feedMessage", "Loading public videos...");
+    $("feed").replaceChildren();
+
+    const { data, error } = await db
+      .from("videos")
+      .select("id,title,video_url,thumbnail_url,created_at")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      show("feedMessage",
+        "Could not load videos: " + error.message +
+        ". Check that the videos table and public read policy exist.");
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      show("feedMessage", "No public videos yet. Be the first to share one!");
+      return;
+    }
+
+    show("feedMessage", data.length + " video(s)");
+
+    for (const item of data) {
+      if (!item.video_url) continue;
+
+      const card = document.createElement("article");
+      card.className = "video-card";
+
+      const player = document.createElement("video");
+      player.controls = true;
+      player.preload = "metadata";
+      player.playsInline = true;
+      player.src = item.video_url;
+
+      if (item.thumbnail_url) player.poster = item.thumbnail_url;
+
+      const title = document.createElement("div");
+      title.className = "video-title";
+      title.textContent = item.title || "Untitled video";
+
+      const date = document.createElement("small");
+      date.textContent = item.created_at
+        ? new Date(item.created_at).toLocaleString()
+        : "";
+
+      card.append(player, title, date);
+      $("feed").append(card);
+    }
+  }
+
+  $("refreshBtn").addEventListener("click", loadFeed);
+
+  $("uploadBtn").addEventListener("click", async () => {
+    if (uploading) return;
+
+    if (!currentUser) {
+      show("uploadMessage", "Please sign in before uploading.");
+      return;
+    }
+
+    const file = $("videoFile").files[0];
+    const title = $("videoTitle").value.trim();
+
+    if (!file) {
+      show("uploadMessage", "Choose a video file first.");
+      return;
+    }
+
+    if (!file.type.startsWith("video/")) {
+      show("uploadMessage", "Please choose a valid video file.");
+      return;
+    }
+
+    // Keep in line with the current 50 MB clips bucket limit.
+    if (file.size > 50 * 1024 * 1024) {
+      show("uploadMessage", "This bucket accepts files up to 50 MB. Choose a smaller video.");
+      return;
+    }
+
+    uploading = true;
+    $("uploadBtn").disabled = true;
+    show("uploadMessage", "Uploading video... Please keep this page open.");
+
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = currentUser.id + "/" + crypto.randomUUID() + "-" + safeName;
+
+      const { error: storageError } = await db.storage
+        .from("clips")
+        .upload(path, file, {
+          contentType: file.type,
+          upsert: false
+        });
+
+      if (storageError) throw storageError;
+
+      const { data: urlData } = db.storage.from("clips").getPublicUrl(path);
+      const videoUrl = urlData.publicUrl;
+
+      const { error: insertError } = await db.from("videos").insert({
+        user_id: currentUser.id,
+        title: title || file.name,
+        video_url: videoUrl,
+        thumbnail_url: null
+      });
+
+      if (insertError) {
+        throw new Error(
+          "Video file uploaded, but saving its feed entry failed: " +
+          insertError.message +
+          ". Check the videos table insert policy."
+        );
+      }
+
+      show("uploadMessage", "Video published successfully!");
+      $("videoTitle").value = "";
+      $("videoFile").value = "";
+      await loadFeed();
+    } catch (error) {
+      show("uploadMessage", "Upload failed: " + (error.message || "Unknown error"));
+    } finally {
+      uploading = false;
+      $("uploadBtn").disabled = false;
+    }
+  });
+
+  (async () => {
+    const { data } = await db.auth.getSession();
+    updateAccount(data.session?.user || null);
+    await loadFeed();
+  })();
+})();
 </script>
 </body>
 </html>
